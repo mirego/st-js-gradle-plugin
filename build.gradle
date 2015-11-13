@@ -5,6 +5,8 @@ apply plugin: 'idea'
 apply plugin: 'net.researchgate.release'
 apply plugin: 'com.bmuschko.nexus'
 
+sourceCompatibility = 1.8
+
 task wrapper(type: Wrapper) {
     gradleVersion = '2.2.1'
 }
