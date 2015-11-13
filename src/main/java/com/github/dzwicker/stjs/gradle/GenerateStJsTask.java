@@ -98,7 +98,7 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 		final GenerationDirectory genDir = getGeneratedSourcesDirectory();
 
 		long t1 = System.currentTimeMillis();
-		logger.info("Generating JavaScript files to " + genDir.getAbsolutePath());
+		logger.info("Generating JavaScript files to " + genDir.getGeneratedSourcesAbsolutePath());
 
 		final ClassLoader builtProjectClassLoader = getBuiltProjectClassLoader();
 
@@ -119,9 +119,10 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 		Collection<String> packages = accumulatePackages();
 		configBuilder.allowedPackages(packages);
 
+		configBuilder.sourceEncoding(encoding);
+
 		final GeneratorConfiguration configuration = configBuilder.build();
-		final Generator generator = new Generator();
-		generator.init(builtProjectClassLoader, encoding);
+		final Generator generator = new Generator(configuration);
 
 		final int[] generatedFiles = {0};
 		final boolean[] hasFailures = new boolean[1];
@@ -164,12 +165,8 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 
 				try {
 					generator.generateJavascript(
-							builtProjectClassLoader,
 							className,
-							sourceDir,
-							genDir,
-							output.getClassesDir(),
-							configuration
+							sourceDir
 					);
 					++generatedFiles[0];
 				} catch (MultipleFileGenerationException e) {
@@ -227,7 +224,7 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	protected void filesGenerated(final Generator generator, final GenerationDirectory genDir) {
 		// copy the javascript support
 		try {
-			generator.copyJavascriptSupport(getGeneratedSourcesDirectory().getAbsolutePath());
+			generator.copyJavascriptSupport(getGeneratedSourcesDirectory().getGeneratedSourcesAbsolutePath());
 		} catch (Exception ex) {
 			throw new RuntimeException("Error when copying support files:" + ex.getMessage(), ex);
 		}
@@ -452,7 +449,7 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	public GenerationDirectory getGeneratedSourcesDirectory() {
 		final File classpath = null;
 		final File relativeToClasspath = new File("/");
-		return new GenerationDirectory(generatedSourcesDirectory, classpath, relativeToClasspath);
+		return new GenerationDirectory(generatedSourcesDirectory, classpath, relativeToClasspath.toURI());
 	}
 
 	public List<String> getAllowedPackages() {
