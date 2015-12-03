@@ -45,6 +45,11 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	private final PatternFilterable patternSet = new PatternSet();
 
 	/**
+	 * The list of java.lang classes that can be referenced from the classes that will be processed by the generator
+	 */
+	protected List<String> allowedJavaLangClasses;
+
+	/**
 	 * The list of packages that can be referenced from the classes that will be processed by the generator
 	 */
 	protected List<String> allowedPackages;
@@ -117,6 +122,11 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 		if (allowedPackages != null) {
 			configBuilder.allowedPackages(allowedPackages);
 		}
+
+		if (allowedJavaLangClasses != null) {
+			configBuilder.allowedJavaLangClasses(allowedJavaLangClasses);
+		}
+
 
 		// scan all the packages
 		Collection<String> packages = accumulatePackages();
