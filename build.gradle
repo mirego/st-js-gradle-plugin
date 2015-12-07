@@ -26,7 +26,6 @@ compileTestJava.options.encoding = defaultEncoding
 buildscript {
     repositories {
         jcenter()
-//        mirego()
         mavenLocal()
     }
 
@@ -53,6 +52,7 @@ idea {
 repositories {
     mavenLocal()
     mavenCentral()
+    mirego()
 }
 
 dependencies {
@@ -62,7 +62,7 @@ dependencies {
     compile group: 'org.slf4j', name: 'slf4j-simple', version: slf4j_version
     compile group: 'org.slf4j', name: 'jcl-over-slf4j', version: slf4j_version
 
-    compile group: 'org.st-js', name: 'generator', version: '3.3.1.7-mirego-SNAPSHOT'
+    compile group: 'org.st-js', name: 'generator', version: '3.3.1.28-mirego'
     compile group: 'com.google.guava', name: 'guava', version: '17.0'
 }
 
