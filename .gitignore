@@ -2,3 +2,4 @@
 build/
 .idea/libraries
 workspace.xml
+.DS_Store
