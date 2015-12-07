@@ -82,13 +82,13 @@ modifyPom {
         name 'Gradle ST-JS plugin'
         packaging 'jar'
         description 'Gradle plugin that provides tasks to compile java classes with the st-js generator to javascript.'
-        url 'https://github.com/dzwicker/st-js-gradle-plugin'
+        url 'https://github.com/mirego/st-js-gradle-plugin'
         inceptionYear '2014'
 
         scm {
-            url 'https://github.com/dzwicker/st-js-gradle-plugin'
-            connection 'scm:https://dzwicker@github.com/dzwicker/st-js-gradle-plugin'
-            developerConnection 'scm:git://github.com/dzwicker/st-js-gradle-plugin'
+            url 'https://github.com/mirego/st-js-gradle-plugin'
+            connection 'scm:https://github.com/mirego/st-js-gradle-plugin'
+            developerConnection 'scm:git://github.com/mirego/st-js-gradle-plugin'
         }
 
         licenses {
