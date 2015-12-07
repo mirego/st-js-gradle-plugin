@@ -3,3 +3,5 @@ build/
 .idea/libraries
 workspace.xml
 .DS_Store
+.idea
+st-js-gradle-plugin.iml
