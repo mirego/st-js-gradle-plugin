@@ -1,15 +1,6 @@
 package com.github.dzwicker.stjs.gradle;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import groovy.lang.Closure;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.file.FileTreeElement;
@@ -33,7 +24,15 @@ import org.stjs.generator.GeneratorConfigurationBuilder;
 import org.stjs.generator.JavascriptFileGenerationException;
 import org.stjs.generator.MultipleFileGenerationException;
 
-import groovy.lang.Closure;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @SuppressWarnings("unused")
 public class GenerateStJsTask extends ConventionTask implements PatternFilterable {
@@ -53,6 +52,11 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	 * The list of packages that can be referenced from the classes that will be processed by the generator
 	 */
 	protected List<String> allowedPackages;
+
+	/**
+	 * The list of method invocations that must be forbidden when processed by the generator
+	 */
+	protected List<String> forbiddenMethodInvocations;
 
 	/**
 	 * Sets the granularity in milliseconds of the last modification date for testing whether a source needs
@@ -127,6 +131,9 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 			configBuilder.allowedJavaLangClasses(allowedJavaLangClasses);
 		}
 
+		if (forbiddenMethodInvocations != null) {
+			configBuilder.forbiddenMethodInvocations(forbiddenMethodInvocations);
+		}
 
 		// scan all the packages
 		Collection<String> packages = accumulatePackages();
