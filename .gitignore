@@ -5,3 +5,5 @@ workspace.xml
 .DS_Store
 .idea
 st-js-gradle-plugin.iml
+st-js-gradle-plugin.ipr
+st-js-gradle-plugin.iws
