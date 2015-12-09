@@ -8,6 +8,7 @@
 2. Commit the file with comment and push it to origin server:
      - `prepare release: 3.3.1.2-mirego`
 3. Create a new tag from this commit with the current version number: `3.3.1.2-mirego`
+4. Publish newly created Tag
 
 ## Perform release
 Perform the following gradle command:
