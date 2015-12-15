@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @SuppressWarnings("unused")
@@ -57,6 +58,14 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	 * The list of method invocations that must be forbidden when processed by the generator
 	 */
 	protected List<String> forbiddenMethodInvocations;
+
+	/**
+	 * Namespace mapping.
+	 *
+	 * Example:
+	 *     namespaces = ['java.util': 'stjs.Java']
+	 */
+	protected Map<String, String> namespaces;
 
 	/**
 	 * Sets the granularity in milliseconds of the last modification date for testing whether a source needs
@@ -133,6 +142,10 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 
 		if (forbiddenMethodInvocations != null) {
 			configBuilder.forbiddenMethodInvocations(forbiddenMethodInvocations);
+		}
+
+		if (namespaces != null) {
+			configBuilder.namespaces(namespaces);
 		}
 
 		// scan all the packages
