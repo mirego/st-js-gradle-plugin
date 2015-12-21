@@ -16,6 +16,7 @@ ext {
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
     slf4j_version = '1.7.2'
+    stjs_version = '3.3.1.40-mirego'
 }
 
 group = 'com.github.dzwicker.stjs.gradle'
@@ -62,7 +63,7 @@ dependencies {
     compile group: 'org.slf4j', name: 'slf4j-simple', version: slf4j_version
     compile group: 'org.slf4j', name: 'jcl-over-slf4j', version: slf4j_version
 
-    compile group: 'org.st-js', name: 'generator', version: '3.3.1.34-mirego'
+    compile group: 'org.st-js', name: 'generator', version: stjs_version
 }
 
 //createReleaseTag.dependsOn uploadArchives

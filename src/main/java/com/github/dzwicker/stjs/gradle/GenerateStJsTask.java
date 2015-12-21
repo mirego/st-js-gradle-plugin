@@ -63,9 +63,17 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	 * Namespace mapping.
 	 *
 	 * Example:
-	 *     namespaces = ['java.util': 'stjs.Java']
+	 *     namespaces = ["java.util": "stjs.Java"]
 	 */
 	protected Map<String, String> namespaces;
+
+	/**
+	 * Renamed Method Signatures mapping.
+	 *
+	 * Example:
+	 *     renamedMethodSignatures = ["java.util.List.add$Object": "add"]
+	 */
+	protected Map<String, String> renamedMethodSignatures;
 
 	/**
 	 * Sets the granularity in milliseconds of the last modification date for testing whether a source needs
@@ -142,6 +150,10 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 
 		if (forbiddenMethodInvocations != null) {
 			configBuilder.forbiddenMethodInvocations(forbiddenMethodInvocations);
+		}
+
+		if (renamedMethodSignatures != null) {
+			configBuilder.renamedMethodSignatures(renamedMethodSignatures);
 		}
 
 		if (namespaces != null) {
