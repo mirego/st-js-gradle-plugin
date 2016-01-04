@@ -96,13 +96,6 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	private boolean generateSourceMap;
 
 	/**
-	 * If true, it packs all the generated Javascript file (using the correct dependency order) into a single file named
-	 * artifactName.js<br>
-	 * default-value="false"
-	 */
-	protected boolean pack;
-
-	/**
 	 * The source directories containing the sources to be compiled.
 	 */
 	private SourceDirectorySet compileSourceRoots;
@@ -526,14 +519,6 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 
 	public void setGenerateSourceMap(boolean generateSourceMap) {
 		this.generateSourceMap = generateSourceMap;
-	}
-
-	public boolean isPack() {
-		return pack;
-	}
-
-	public void setPack(boolean pack) {
-		this.pack = pack;
 	}
 
 	public SourceDirectorySet getCompileSourceRoots() {

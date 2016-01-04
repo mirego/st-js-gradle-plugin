@@ -2,6 +2,7 @@ defaultTasks 'clean', 'check', 'assemble'
 
 apply plugin: 'java'
 apply plugin: 'idea'
+apply plugin: 'groovy'
 //apply plugin: 'net.researchgate.release'
 //apply plugin: 'com.bmuschko.nexus'
 
@@ -9,14 +10,14 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.8'
 }
 
-def javaVersion = 1.8
+def javaVersion = 1.7
 def defaultEncoding = 'UTF-8'
 
 ext {
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
     slf4j_version = '1.7.2'
-    stjs_version = '3.3.1.40-mirego'
+    stjs_version = '3.3.1.42-mirego'
 }
 
 group = 'com.github.dzwicker.stjs.gradle'
@@ -59,6 +60,7 @@ repositories {
 dependencies {
 
     compile gradleApi()
+    compile localGroovy()
 
     compile group: 'org.slf4j', name: 'slf4j-simple', version: slf4j_version
     compile group: 'org.slf4j', name: 'jcl-over-slf4j', version: slf4j_version
