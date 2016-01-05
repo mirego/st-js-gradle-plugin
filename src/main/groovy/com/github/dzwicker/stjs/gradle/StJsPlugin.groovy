@@ -1,15 +1,13 @@
-package com.github.dzwicker.stjs.gradle;
+package com.github.dzwicker.stjs.gradle
 
-import org.gradle.api.Plugin;
-import org.gradle.api.Project;
-import org.gradle.api.file.SourceDirectorySet;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.plugins.JavaPluginConvention;
-import org.gradle.api.plugins.WarPlugin;
-import org.gradle.api.tasks.SourceSet;
-
-import java.io.File;
+import org.gradle.api.Plugin
+import org.gradle.api.Project
+import org.gradle.api.file.SourceDirectorySet
+import org.gradle.api.logging.Logger
+import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.plugins.JavaPluginConvention
+import org.gradle.api.plugins.WarPlugin
+import org.gradle.api.tasks.SourceSet
 
 @SuppressWarnings("UnusedDeclaration")
 public class StJsPlugin implements Plugin<Project> {
@@ -32,21 +30,25 @@ public class StJsPlugin implements Plugin<Project> {
             throw new IllegalStateException("Only a single source directory is supported!");
         }
 
-        final GenerateStJsTask task = project.getTasks().create("stjs", GenerateStJsTask.class);
-        task.setClasspath(
-            main.getCompileClasspath()
+        final GenerateStJsTask generateStJsTask = project.getTasks().create("stjs", GenerateStJsTask.class);
+        generateStJsTask.setClasspath(
+                main.getCompileClasspath()
         );
-        task.setWar(warPlugin);
+        generateStJsTask.setWar(warPlugin);
         File generatedSourcesDirectory;
         if (warPlugin) {
             generatedSourcesDirectory = new File(project.getBuildDir(), "stjs");
-            project.getTasks().getByPath(WarPlugin.WAR_TASK_NAME).dependsOn(task);
+            project.getTasks().getByPath(WarPlugin.WAR_TASK_NAME).dependsOn(generateStJsTask);
         } else {
             generatedSourcesDirectory = main.getOutput().getClassesDir();
-            project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(task);
+            project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(generateStJsTask);
         }
-        task.setGeneratedSourcesDirectory(generatedSourcesDirectory);
-        task.setCompileSourceRoots(allJava);
-        task.setOutput(main.getOutput());
+        generateStJsTask.setGeneratedSourcesDirectory(generatedSourcesDirectory);
+        generateStJsTask.setCompileSourceRoots(allJava);
+        generateStJsTask.setOutput(main.getOutput());
+
+        final PackStjsTask packTask = project.getTasks().create("packStjs", PackStjsTask.class);
+        packTask.setInputDir(project.getBuildDir());
+        packTask.dependsOn(generateStJsTask);
     }
 }
