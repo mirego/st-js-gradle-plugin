@@ -21,10 +21,14 @@ import org.stjs.generator.GenerationDirectory;
 import org.stjs.generator.Generator;
 import org.stjs.generator.GeneratorConfiguration;
 import org.stjs.generator.GeneratorConfigurationBuilder;
+import org.stjs.generator.GeneratorConfigurationConfigParser;
 import org.stjs.generator.JavascriptFileGenerationException;
 import org.stjs.generator.MultipleFileGenerationException;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -255,6 +259,23 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 		if (hasFailures[0]) {
 			throw new RuntimeException("Errors generating JavaScript");
 		}
+
+		writeMergedConfigToFile(configuration);
+	}
+
+	private void writeMergedConfigToFile(GeneratorConfiguration configuration) {
+		File targetDir = output.getClassesDir();
+		String configFile = configuration.getGenerationFolder().getGeneratedSourcesAbsolutePath().getPath() + "/" + GeneratorConfigurationConfigParser.CONFIG_PROPERTIES_RESOURCES_FILENAME;
+		OutputStream configFileOutputStream;
+		try {
+			configFileOutputStream = new FileOutputStream(configFile);
+
+			GeneratorConfigurationConfigParser configParser = new GeneratorConfigurationConfigParser();
+			configParser.writeToConfigFile(configFileOutputStream, configuration);
+		}
+		catch (IOException e) {
+			throw new RuntimeException("IOException should not have been thrown.", e);
+		}
 	}
 
 	protected void filesGenerated(final Generator generator) {
@@ -264,9 +285,6 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 		} catch (Exception ex) {
 			throw new RuntimeException("Error when copying support files:" + ex.getMessage(), ex);
 		}
-		//TODO pack not supported
-		//packFiles(generator, genDir);
-
 	}
 
 	/**
