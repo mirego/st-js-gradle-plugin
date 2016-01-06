@@ -7,6 +7,7 @@ import org.gradle.api.tasks.TaskAction
 class PackStjsTask extends DefaultTask {
     def File inputDir
     def File customJsDir
+    def File generatedJsFolder
     def String packedFilename
     def String generatedJsListFilename
     def packageAliases = []
@@ -17,14 +18,12 @@ class PackStjsTask extends DefaultTask {
     ArrayList<String> circularReferenceGuard
     File generated_js_list
     File packed_file
-    File generatedJsFolder
 
     @TaskAction
     void pack() {
         logger.info("inputDir: $inputDir")
 
         def classesFolder = new File(new File(inputDir, "classes"), "main")
-        generatedJsFolder = new File(inputDir, "stjs")
         logger.info("classesFolder: $classesFolder")
 
         allClassesInfo = findAllClassInfo(classesFolder);
@@ -35,8 +34,6 @@ class PackStjsTask extends DefaultTask {
         }
 
         alreadyIncludedClasses = new HashSet<String>()
-
-        generatedJsFolder = new File(inputDir, 'stjs')
 
         packed_file = new File(generatedJsFolder, packedFilename)
         packed_file.delete()
@@ -57,15 +54,17 @@ class PackStjsTask extends DefaultTask {
     }
 
     void includeCustomJs() {
-        customJsDir.eachFileRecurse(FileType.FILES) { file ->
-            if (file.path.endsWith('.js')) {
-                packed_file.append('\n')
-                packed_file.append('\n')
-                packed_file.append('// ------------------------------------------------------------------------\n')
-                packed_file.append("// ${file.name}\n")
-                packed_file.append('// ------------------------------------------------------------------------\n')
+        if (customJsDir != null) {
+            customJsDir.eachFileRecurse(FileType.FILES) { file ->
+                if (file.path.endsWith('.js')) {
+                    packed_file.append('\n')
+                    packed_file.append('\n')
+                    packed_file.append('// ------------------------------------------------------------------------\n')
+                    packed_file.append("// ${file.name}\n")
+                    packed_file.append('// ------------------------------------------------------------------------\n')
 
-                packed_file.append(new FileInputStream(file))
+                    packed_file.append(new FileInputStream(file))
+                }
             }
         }
     }
