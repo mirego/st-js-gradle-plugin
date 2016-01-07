@@ -1,6 +1,7 @@
 package com.github.dzwicker.stjs.gradle;
 
 import groovy.lang.Closure;
+import org.gradle.api.Project;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.file.FileTree;
 import org.gradle.api.file.FileTreeElement;
@@ -27,7 +28,6 @@ import org.stjs.generator.MultipleFileGenerationException;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,14 +35,13 @@ import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
 
 @SuppressWarnings("unused")
 public class GenerateStJsTask extends ConventionTask implements PatternFilterable {
@@ -90,6 +89,16 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	protected Map<String, String> renamedMethodSignatures;
 
 	/**
+	 * An alternative configuration to specify the source directories.
+	 *
+	 * This could be used to override the native behavior of fetching the sources from the JavaPluginConvention 'getAllJava()'.
+	 *
+	 * Example:
+	 * 		sourceDirs = ['generated-model', 'src/main/java']
+	 */
+	protected List<String> sourceDirs;
+
+	/**
 	 * Sets the granularity in milliseconds of the last modification date for testing whether a source needs
 	 * recompilation.<br>
 	 * default-value="0"
@@ -132,7 +141,6 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	protected void generate() {
 		final GenerationDirectory genDir = getGeneratedSourcesDirectory();
 
-		long t1 = System.currentTimeMillis();
 		logger.info("Generating JavaScript files to " + genDir.getGeneratedSourcesAbsolutePath());
 
 		GeneratorConfigurationBuilder configBuilder = new GeneratorConfigurationBuilder();
@@ -184,15 +192,59 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 		configBuilder.allowedPackages(packages);
 
 		final GeneratorConfiguration configuration = configBuilder.build();
+
+		generate(configuration, getProject());
+
+		writeMergedConfigToFile(configuration);
+	}
+
+	private void generate(GeneratorConfiguration configuration, Project project) {
+		long t1 = System.currentTimeMillis();
+
 		final Generator generator = new Generator(configuration);
 
 		final int[] generatedFiles = {0};
 		final boolean[] hasFailures = new boolean[1];
-		final File sourceDir = compileSourceRoots.getSrcDirs().iterator().next();
+
+		File sourceDir = compileSourceRoots.getSrcDirs().iterator().next();
+		FileTree sourceFileTree = compileSourceRoots.getAsFileTree();
+		if (sourceDirs != null && !sourceDirs.isEmpty()) {
+			Iterator<String> sourceDirsIterator = sourceDirs.iterator();
+			while (sourceDirsIterator.hasNext()) {
+				String sourceDirPath = getSourceDirPath(sourceDirsIterator.next(), project.getRootDir().getAbsolutePath());
+				sourceFileTree = project.fileTree(sourceDirPath);
+
+				generateVisitSource(generator, generatedFiles, hasFailures, new File(sourceDirPath), sourceFileTree);
+			}
+		} else {
+			generateVisitSource(generator, generatedFiles, hasFailures, sourceDir, sourceFileTree);
+		}
+
+		generator.close();
+		long t2 = System.currentTimeMillis();
+		logger.info("Generated " + generatedFiles[0] + " JavaScript files in " + (t2 - t1) + " ms");
+		if (generatedFiles[0] > 0) {
+			filesGenerated(generator);
+		}
+
+		if (hasFailures[0]) {
+			throw new RuntimeException("Errors generating JavaScript");
+		}
+	}
+
+	private String getSourceDirPath(String sourceDirPath, String rootDir) {
+		File sourceDirPathAsFile = new File(sourceDirPath);
+		if (!sourceDirPathAsFile.isAbsolute()) {
+			return rootDir + "/" + sourceDirPath;
+		}
+
+		return sourceDirPath;
+	}
+
+	private void generateVisitSource(final Generator generator, final int[] generatedFiles, final boolean[] hasFailures, final File sourceDir, FileTree sourceFileTree) {
 		// scan the modified sources
-		FileTree src = compileSourceRoots.getAsFileTree();
-		src = src.matching(patternSet);
-		src.visit(new FileVisitor() {
+		sourceFileTree = sourceFileTree.matching(patternSet);
+		sourceFileTree.visit(new FileVisitor() {
 
 			@Override
 			public void visitDir(FileVisitDetails dirDetails) {
@@ -270,19 +322,6 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 				}
 			}
 		});
-
-		generator.close();
-		long t2 = System.currentTimeMillis();
-		logger.info("Generated " + generatedFiles[0] + " JavaScript files in " + (t2 - t1) + " ms");
-		if (generatedFiles[0] > 0) {
-			filesGenerated(generator);
-		}
-
-		if (hasFailures[0]) {
-			throw new RuntimeException("Errors generating JavaScript");
-		}
-
-		writeMergedConfigToFile(configuration);
 	}
 
 	private void addConfigFromInheritedPackedConfig(GeneratorConfigurationBuilder Builder) {
