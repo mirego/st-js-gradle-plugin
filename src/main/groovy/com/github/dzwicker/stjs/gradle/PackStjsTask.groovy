@@ -117,9 +117,13 @@ class PackStjsTask extends DefaultTask {
                             // split dependencies
                             value = value.replace('[', '').replace(']', '')
                                     .replace(',', '\t')
-                                    .replace('o\\:', '')
                                     .replace('s\\:', '')
                                     .tokenize('\t');
+
+                            // remove OTHER dependencies ("o:\")
+                            value.removeAll {
+                                it.startsWith('o\\:')
+                            }
                         }
 
                         classProps[name] = value
