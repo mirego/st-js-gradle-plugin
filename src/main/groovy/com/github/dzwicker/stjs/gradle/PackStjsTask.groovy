@@ -47,9 +47,19 @@ class PackStjsTask extends DefaultTask {
         generated_js_list.delete()
         generated_js_list << '<script src="./stjs.js" type="text/javascript"></script>\n'
 
+        def hasCircularError = false;
         allClassesInfo.each { classInfo ->
             circularReferenceGuard = new ArrayList<String>()
-            tryIncludeClass(classInfo)
+            try {
+                tryIncludeClass(classInfo)
+            } catch (RuntimeException e) {
+                alreadyIncludedClasses.add(classInfo.class)
+
+                hasCircularError = true;
+            }
+        }
+        if (hasCircularError) {
+            throw new RuntimeException("Circular references exceptions. Please review the errors.")
         }
     }
 
@@ -72,6 +82,7 @@ class PackStjsTask extends DefaultTask {
     void tryIncludeClass(classInfo) {
         if (!alreadyIncludedClasses.contains(classInfo.class)) {
             if (circularReferenceGuard.contains(classInfo.class)) {
+                logger.error("Circular references exceptions: ${classInfo.class} --> $circularReferenceGuard")
                 throw new RuntimeException("Circular references exceptions: ${classInfo.class} --> $circularReferenceGuard")
             }
 
