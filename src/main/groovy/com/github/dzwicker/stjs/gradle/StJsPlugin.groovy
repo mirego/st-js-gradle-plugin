@@ -16,13 +16,17 @@ import org.stjs.generator.GeneratorConfigurationConfigParser
 public class StJsPlugin implements Plugin<Project> {
     private static final String TASK_GROUP = 'stjs'
 
+    private GenerateStJsTask generateStJsTask;
+    private Task inheritedPackedStjsCompileExtractionTask;
+    private Task inheritedPackedStjsCompileCopyTask;
+
     @Override
     public void apply(final Project project) {
         // Add a configuration for inherited packed/transpiled assets
         def inheritedPackedStjsCompileConfiguration = project.configurations.create("inheritedPackedStjsCompile");
         inheritedPackedStjsCompileConfiguration.transitive = false;
 
-        def inheritedPackedStjsCompileExtractionTask = project.task('inheritedPackedStjsCompileExtraction', type: Copy,
+        inheritedPackedStjsCompileExtractionTask = project.task('inheritedPackedStjsCompileExtraction', type: Copy,
                 group: TASK_GROUP, description: 'Fetch the config.properties to merge with the current specified config as well as copying any packed.js file.') {
             from {
                 project.configurations.inheritedPackedStjsCompile.asFileTree.each {
@@ -64,20 +68,19 @@ public class StJsPlugin implements Plugin<Project> {
         packTask.setInputDir(project.getBuildDir());
         packTask.setGeneratedJsFolder(generatedSourcesDirectory);
 
-        def inheritedPackedStjsCompileCopyTask = project.task('inheritedPackedStjsCompileCopy',
+        inheritedPackedStjsCompileCopyTask = project.task('inheritedPackedStjsCompileCopy',
                 group: TASK_GROUP, description: 'Copy the packed.js files found in the inherited packed dependency.') {
             inputs.dir inheritedPackedStjsCompileExtractionTask.outputs.files
             outputs.dir generatedSourcesDirectory
             outputs.upToDateWhen { false }
         } << this.&copyIneritedPackedFiles
 
-        GenerateStJsTask generateStJsTask = project.getTasks().create("stjs", GenerateStJsTask.class);
+        generateStJsTask = project.getTasks().create("stjs", GenerateStJsTask.class);
         generateStJsTask.setClasspath(main.getCompileClasspath());
         generateStJsTask.setWar(isForWarPlugin);
         generateStJsTask.setGeneratedSourcesDirectory(generatedSourcesDirectory);
         generateStJsTask.setCompileSourceRoots(allJava);
         generateStJsTask.setOutput(main.getOutput());
-        generateStJsTask.setInheritedPackedConfigFilePath(getIneritedPackedConfigFile(inheritedPackedStjsCompileExtractionTask));
 
         inheritedPackedStjsCompileCopyTask.dependsOn(inheritedPackedStjsCompileExtractionTask);
         generateStJsTask.dependsOn(inheritedPackedStjsCompileCopyTask);
@@ -103,11 +106,16 @@ public class StJsPlugin implements Plugin<Project> {
                 newDest << from.bytes
             }
         }
+
+        // Set the inherited config only when we are in execution mode, not apply mode.
+        generateStJsTask.setInheritedPackedConfigFilePath(getIneritedPackedConfigFile())
     }
 
-    String getIneritedPackedConfigFile(Task task) {
-        if (!task.outputs.files.empty) {
-            def filteredFiles = task.outputs.files.asFileTree.filter { it.name.matches(GeneratorConfigurationConfigParser.CONFIG_PROPERTIES_RESOURCES_FILENAME) }
+    String getIneritedPackedConfigFile() {
+        if (!inheritedPackedStjsCompileExtractionTask.outputs.files.empty) {
+            def filteredFiles = inheritedPackedStjsCompileExtractionTask.outputs.files.asFileTree.filter {
+                it.name.matches(GeneratorConfigurationConfigParser.CONFIG_PROPERTIES_RESOURCES_FILENAME)
+            }
 
             return filteredFiles.iterator().hasNext() ? filteredFiles.first().absolutePath : null;
         }
