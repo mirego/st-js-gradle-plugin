@@ -103,6 +103,7 @@ class PackStjsTask extends DefaultTask {
     void includeClass(classInfo) {
         logger.info("Including class: $classInfo")
         alreadyIncludedClasses.add(classInfo.class)
+        circularReferenceGuard.remove(classInfo.class)
         generated_js_list << "<script src=\".${classInfo.js}\" type=\"text/javascript\"></script>\n"
 
         packed_file.append('\n')
