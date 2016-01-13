@@ -102,7 +102,7 @@ public class StJsPlugin implements Plugin<Project> {
                     throw new IllegalStateException("Expected packed file is not a valid file.")
                 }
 
-                def newDest = new File("${dest.absolutePath}/${from.name}")
+                def newDest = new File("${dest.absolutePath}/${from.name}").newWriter(false)
                 newDest << from.bytes
             }
         }
