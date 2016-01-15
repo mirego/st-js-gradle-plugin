@@ -3,12 +3,7 @@ defaultTasks 'clean', 'check', 'assemble'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'groovy'
-//apply plugin: 'net.researchgate.release'
-//apply plugin: 'com.bmuschko.nexus'
-
-task wrapper(type: Wrapper) {
-    gradleVersion = '2.8'
-}
+apply plugin: 'maven'
 
 def javaVersion = 1.7
 def defaultEncoding = 'UTF-8'
@@ -24,18 +19,6 @@ group = 'com.github.dzwicker.stjs.gradle'
 
 compileJava.options.encoding = defaultEncoding
 compileTestJava.options.encoding = defaultEncoding
-
-buildscript {
-    repositories {
-        jcenter()
-        mavenLocal()
-    }
-
-    dependencies {
-        classpath 'net.researchgate:gradle-release:2.0.0'
-        classpath 'com.bmuschko:gradle-nexus-plugin:2.3'
-    }
-}
 
 idea {
     module {

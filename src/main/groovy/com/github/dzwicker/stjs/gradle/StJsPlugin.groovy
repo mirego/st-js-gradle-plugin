@@ -8,8 +8,8 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.WarPlugin
-import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.Copy
+import org.gradle.api.tasks.SourceSet
 import org.stjs.generator.GeneratorConfigurationConfigParser
 
 @SuppressWarnings("UnusedDeclaration")
@@ -29,8 +29,10 @@ public class StJsPlugin implements Plugin<Project> {
         inheritedPackedStjsCompileExtractionTask = project.task('inheritedPackedStjsCompileExtraction', type: Copy,
                 group: TASK_GROUP, description: 'Fetch the config.properties to merge with the current specified config as well as copying any packed.js file.') {
             from {
-                project.configurations.inheritedPackedStjsCompile.asFileTree.each {
-                    from(project.zipTree(it))
+                project.afterEvaluate {
+                    project.configurations.inheritedPackedStjsCompile.asFileTree.each {
+                        from(project.zipTree(it))
+                    }
                 }
                 // Don't include the actual archives themselves
                 null
