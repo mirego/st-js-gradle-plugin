@@ -14,11 +14,12 @@ import org.stjs.generator.GeneratorConfigurationConfigParser
 
 @SuppressWarnings("UnusedDeclaration")
 public class StJsPlugin implements Plugin<Project> {
-    private static final String TASK_GROUP = 'stjs'
+    private static final String TASK_GROUP = 'ST-JS'
 
     private GenerateStJsTask generateStJsTask;
     private Task inheritedPackedStjsCompileExtractionTask;
     private Task inheritedPackedStjsCompileCopyTask;
+    private PackStjsTask packStjsTask;
 
     @Override
     public void apply(final Project project) {
@@ -28,14 +29,14 @@ public class StJsPlugin implements Plugin<Project> {
 
         inheritedPackedStjsCompileExtractionTask = project.task('inheritedPackedStjsCompileExtraction', type: Copy,
                 group: TASK_GROUP, description: 'Fetch the config.properties to merge with the current specified config as well as copying any packed.js file.') {
-            from {
-                project.afterEvaluate {
-                    project.configurations.inheritedPackedStjsCompile.asFileTree.each {
-                        from(project.zipTree(it))
+            project.afterEvaluate {
+                from {
+                    inheritedPackedStjsCompileConfiguration.asFileTree.each {
+                        from project.zipTree(it)
                     }
+                    // Don't include the actual archives themselves
+                    null
                 }
-                // Don't include the actual archives themselves
-                null
             }
             into project.file('build/' + project.configurations.inheritedPackedStjsCompile.name)
         }
@@ -56,19 +57,19 @@ public class StJsPlugin implements Plugin<Project> {
             throw new IllegalStateException("Only a single source directory is supported!");
         }
 
-        PackStjsTask packTask = project.getTasks().create("packStjs", PackStjsTask.class);
+        packStjsTask = project.task('packStjs', type: PackStjsTask, group: TASK_GROUP);
 
         File generatedSourcesDirectory;
         if (isForWarPlugin) {
             generatedSourcesDirectory = new File(project.getBuildDir(), "stjs");
-            project.getTasks().getByPath(WarPlugin.WAR_TASK_NAME).dependsOn(packTask);
+            project.getTasks().getByPath(WarPlugin.WAR_TASK_NAME).dependsOn(packStjsTask);
         } else {
             generatedSourcesDirectory = main.getOutput().getClassesDir();
-            project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(packTask);
+            project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(packStjsTask);
         }
 
-        packTask.setInputDir(project.getBuildDir());
-        packTask.setGeneratedJsFolder(generatedSourcesDirectory);
+        packStjsTask.setInputDir(project.getBuildDir());
+        packStjsTask.setGeneratedJsFolder(generatedSourcesDirectory);
 
         inheritedPackedStjsCompileCopyTask = project.task('inheritedPackedStjsCompileCopy',
                 group: TASK_GROUP, description: 'Copy the packed.js files found in the inherited packed dependency.') {
@@ -77,7 +78,7 @@ public class StJsPlugin implements Plugin<Project> {
             outputs.upToDateWhen { false }
         } << this.&copyIneritedPackedFiles
 
-        generateStJsTask = project.getTasks().create("stjs", GenerateStJsTask.class);
+        generateStJsTask = project.task('stjs', type: GenerateStJsTask, group: TASK_GROUP);
         generateStJsTask.setClasspath(main.getCompileClasspath());
         generateStJsTask.setWar(isForWarPlugin);
         generateStJsTask.setGeneratedSourcesDirectory(generatedSourcesDirectory);
@@ -86,7 +87,7 @@ public class StJsPlugin implements Plugin<Project> {
 
         inheritedPackedStjsCompileCopyTask.dependsOn(inheritedPackedStjsCompileExtractionTask);
         generateStJsTask.dependsOn(inheritedPackedStjsCompileCopyTask);
-        packTask.dependsOn(generateStJsTask);
+        packStjsTask.dependsOn(generateStJsTask);
     }
 
     void copyIneritedPackedFiles(Task task) {
