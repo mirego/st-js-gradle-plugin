@@ -1,5 +1,4 @@
 package com.github.dzwicker.stjs.gradle
-
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -8,9 +7,10 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.WarPlugin
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.stjs.generator.GeneratorConfigurationConfigParser
+
+import java.util.zip.ZipFile
 
 @SuppressWarnings("UnusedDeclaration")
 public class StJsPlugin implements Plugin<Project> {
@@ -24,21 +24,34 @@ public class StJsPlugin implements Plugin<Project> {
     @Override
     public void apply(final Project project) {
         // Add a configuration for inherited packed/transpiled assets
-        def inheritedPackedStjsCompileConfiguration = project.configurations.create("inheritedPackedStjsCompile");
+            def inheritedPackedStjsCompileConfiguration = project.configurations.create("inheritedPackedStjsCompile");
         inheritedPackedStjsCompileConfiguration.transitive = false;
 
-        inheritedPackedStjsCompileExtractionTask = project.task('inheritedPackedStjsCompileExtraction', type: Copy,
+        inheritedPackedStjsCompileExtractionTask = project.task('inheritedPackedStjsCompileExtraction',
                 group: TASK_GROUP, description: 'Fetch the config.properties to merge with the current specified config as well as copying any packed.js file.') {
-            project.afterEvaluate {
-                from {
-                    inheritedPackedStjsCompileConfiguration.asFileTree.each {
-                        from project.zipTree(it)
+            outputs.dir project.file('build/' + project.configurations.inheritedPackedStjsCompile.name)
+            outputs.upToDateWhen { false }
+        } << {
+            def destDir = project.file('build/' + project.configurations.inheritedPackedStjsCompile.name)
+            project.configurations.inheritedPackedStjsCompile.asFileTree.each { depFile ->
+                def zipFile = new ZipFile(depFile)
+                zipFile.stream().forEach({ zipEntry ->
+                    def filePath = "${destDir}${File.separator}${zipEntry.name}"
+                    if (zipEntry.isDirectory()) {
+                        logger.debug("  creating: $filePath")
+                        def dir = new File(filePath)
+                        if (!dir.exists()) {
+                            new File(filePath).mkdirs()
+                        }
+                    } else {
+                        logger.debug(" inflating: $filePath")
+                        new File(filePath).withOutputStream {
+                            it << zipFile.getInputStream(zipEntry)
+                        }
                     }
-                    // Don't include the actual archives themselves
-                    null
-                }
+                })
+                zipFile.close()
             }
-            into project.file('build/' + project.configurations.inheritedPackedStjsCompile.name)
         }
 
         boolean isForJavaPlugin = project.getPlugins().hasPlugin(JavaPlugin.class);
