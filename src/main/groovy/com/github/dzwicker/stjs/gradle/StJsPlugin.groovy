@@ -10,6 +10,7 @@ import org.gradle.api.plugins.WarPlugin
 import org.gradle.api.tasks.SourceSet
 import org.stjs.generator.GeneratorConfigurationConfigParser
 
+import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 
 @SuppressWarnings("UnusedDeclaration")
@@ -35,7 +36,12 @@ public class StJsPlugin implements Plugin<Project> {
             def destDir = project.file('build/' + project.configurations.inheritedPackedStjsCompile.name)
             project.configurations.inheritedPackedStjsCompile.asFileTree.each { depFile ->
                 def zipFile = new ZipFile(depFile)
-                zipFile.stream().forEach({ zipEntry ->
+
+                Enumeration<? extends ZipEntry> entries = zipFile.entries();
+
+                while (entries.hasMoreElements()) {
+                    ZipEntry zipEntry = entries.nextElement();
+
                     def filePath = "${destDir}${File.separator}${zipEntry.name}"
                     if (zipEntry.isDirectory()) {
                         logger.debug("  creating: $filePath")
@@ -49,7 +55,7 @@ public class StJsPlugin implements Plugin<Project> {
                             it << zipFile.getInputStream(zipEntry)
                         }
                     }
-                })
+                }
                 zipFile.close()
             }
         }
