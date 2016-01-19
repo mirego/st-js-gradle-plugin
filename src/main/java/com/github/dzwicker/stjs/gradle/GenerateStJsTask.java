@@ -206,7 +206,6 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 		final int[] generatedFiles = {0};
 		final boolean[] hasFailures = new boolean[1];
 
-		File sourceDir = compileSourceRoots.getSrcDirs().iterator().next();
 		FileTree sourceFileTree = compileSourceRoots.getAsFileTree();
 		if (sourceDirs != null && !sourceDirs.isEmpty()) {
 			Iterator<String> sourceDirsIterator = sourceDirs.iterator();
@@ -217,6 +216,11 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 				generateVisitSource(generator, generatedFiles, hasFailures, new File(sourceDirPath), sourceFileTree);
 			}
 		} else {
+			if (compileSourceRoots.getSrcDirs().size() != 1) {
+				throw new IllegalStateException("Only a single source directory is supported! Use the configuration 'sourceDirs' to specify more than a source directory.");
+			}
+
+			File sourceDir = compileSourceRoots.getSrcDirs().iterator().next();
 			generateVisitSource(generator, generatedFiles, hasFailures, sourceDir, sourceFileTree);
 		}
 
