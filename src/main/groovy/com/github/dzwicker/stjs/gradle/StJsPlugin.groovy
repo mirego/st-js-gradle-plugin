@@ -72,9 +72,6 @@ public class StJsPlugin implements Plugin<Project> {
         JavaPluginConvention javaPluginConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
         SourceSet main = javaPluginConvention.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
         SourceDirectorySet allJava = main.getAllJava();
-        if (allJava.getSrcDirs().size() != 1) {
-            throw new IllegalStateException("Only a single source directory is supported!");
-        }
 
         packStjsTask = project.task('packStjs', type: PackStjsTask, group: TASK_GROUP);
 
