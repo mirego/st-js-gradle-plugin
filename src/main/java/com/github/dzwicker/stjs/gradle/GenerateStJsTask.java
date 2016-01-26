@@ -131,6 +131,7 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 	private boolean war;
 	private SourceSetOutput output;
 	private String inheritedPackedConfigFilePath;
+	public GeneratorConfiguration configuration;
 
 	public GenerateStJsTask() {
 		dependsOn(JavaPlugin.CLASSES_TASK_NAME);
@@ -191,7 +192,7 @@ public class GenerateStJsTask extends ConventionTask implements PatternFilterabl
 		Collection<String> packages = accumulatePackages();
 		configBuilder.allowedPackages(packages);
 
-		final GeneratorConfiguration configuration = configBuilder.build();
+		configuration = configBuilder.build();
 
 		generate(configuration, getProject());
 
