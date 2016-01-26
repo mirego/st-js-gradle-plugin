@@ -21,11 +21,12 @@ public class StJsPlugin implements Plugin<Project> {
     private Task inheritedPackedStjsCompileExtractionTask;
     private Task inheritedPackedStjsCompileCopyTask;
     private PackStjsTask packStjsTask;
+    private GenerateEs6ModulesTasks generateEs6ModulesTask;
 
     @Override
     public void apply(final Project project) {
         // Add a configuration for inherited packed/transpiled assets
-            def inheritedPackedStjsCompileConfiguration = project.configurations.create("inheritedPackedStjsCompile");
+        def inheritedPackedStjsCompileConfiguration = project.configurations.create("inheritedPackedStjsCompile");
         inheritedPackedStjsCompileConfiguration.transitive = false;
 
         inheritedPackedStjsCompileExtractionTask = project.task('inheritedPackedStjsCompileExtraction',
@@ -63,10 +64,14 @@ public class StJsPlugin implements Plugin<Project> {
         boolean isForJavaPlugin = project.getPlugins().hasPlugin(JavaPlugin.class);
         boolean isForWarPlugin = project.getPlugins().hasPlugin(WarPlugin.class);
 
+        if (isForWarPlugin) {
+            throw new IllegalStateException("st-js plugin cannot be used by war plugin.");
+        }
+
         Logger logger = project.getLogger();
-        if (!isForJavaPlugin && !isForWarPlugin) {
-            logger.error("st-js plugin can only be applied if jar or war plugin is applied, too!");
-            throw new IllegalStateException("st-js plugin can only be applied if jar or war plugin is applied, too!");
+        if (!isForJavaPlugin) {
+            logger.error("st-js plugin can only be applied if jar plugin is applied!");
+            throw new IllegalStateException("st-js plugin can only be applied if jar plugin is applied!");
         }
 
         JavaPluginConvention javaPluginConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
@@ -74,18 +79,17 @@ public class StJsPlugin implements Plugin<Project> {
         SourceDirectorySet allJava = main.getAllJava();
 
         packStjsTask = project.task('packStjs', type: PackStjsTask, group: TASK_GROUP);
+        generateEs6ModulesTask = project.task('generateEs6Modules', type: GenerateEs6ModulesTasks, group: TASK_GROUP)
 
-        File generatedSourcesDirectory;
-        if (isForWarPlugin) {
-            generatedSourcesDirectory = new File(project.getBuildDir(), "stjs");
-            project.getTasks().getByPath(WarPlugin.WAR_TASK_NAME).dependsOn(packStjsTask);
-        } else {
-            generatedSourcesDirectory = main.getOutput().getClassesDir();
-            project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(packStjsTask);
-        }
+        File generatedSourcesDirectory = main.getOutput().getClassesDir();
+        File generatedResourcesDirectory = main.getOutput().resourcesDir;
+        project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(packStjsTask);
 
         packStjsTask.setInputDir(project.getBuildDir());
         packStjsTask.setGeneratedJsFolder(generatedSourcesDirectory);
+
+        generateEs6ModulesTask.setInputDir(project.getBuildDir());
+        generateEs6ModulesTask.setGeneratedJsFolder(new File(generatedResourcesDirectory, 'stjs-es6modules'));
 
         inheritedPackedStjsCompileCopyTask = project.task('inheritedPackedStjsCompileCopy',
                 group: TASK_GROUP, description: 'Copy the packed.js files found in the inherited packed dependency.') {
@@ -94,7 +98,10 @@ public class StJsPlugin implements Plugin<Project> {
             outputs.upToDateWhen { false }
         } << this.&copyIneritedPackedFiles
 
-        generateStJsTask = project.task('stjs', type: GenerateStJsTask, group: TASK_GROUP);
+        generateStJsTask = project.task('stjs', type: GenerateStJsTask, group: TASK_GROUP) << {
+            generateEs6ModulesTask.setNamespaces(generateStJsTask.configuration.getNamespaces());
+        }
+
         generateStJsTask.setClasspath(main.getCompileClasspath());
         generateStJsTask.setWar(isForWarPlugin);
         generateStJsTask.setGeneratedSourcesDirectory(generatedSourcesDirectory);
@@ -104,6 +111,7 @@ public class StJsPlugin implements Plugin<Project> {
         inheritedPackedStjsCompileCopyTask.dependsOn(inheritedPackedStjsCompileExtractionTask);
         generateStJsTask.dependsOn(inheritedPackedStjsCompileCopyTask);
         packStjsTask.dependsOn(generateStJsTask);
+        generateEs6ModulesTask.dependsOn(generateStJsTask);
     }
 
     void copyIneritedPackedFiles(Task task) {
