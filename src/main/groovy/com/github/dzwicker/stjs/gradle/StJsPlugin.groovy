@@ -89,7 +89,8 @@ public class StJsPlugin implements Plugin<Project> {
         packStjsTask.setGeneratedJsFolder(generatedSourcesDirectory);
 
         generateEs6ModulesTask.setInputDir(project.getBuildDir());
-        generateEs6ModulesTask.setGeneratedJsFolder(new File(generatedResourcesDirectory, 'stjs-es6modules'));
+        generateEs6ModulesTask.setTempFolder(new File(project.rootDir, 'build/tmp/stjs-es6modules'));
+        generateEs6ModulesTask.setDestFolder(generatedResourcesDirectory);
 
         inheritedPackedStjsCompileCopyTask = project.task('inheritedPackedStjsCompileCopy',
                 group: TASK_GROUP, description: 'Copy the packed.js files found in the inherited packed dependency.') {

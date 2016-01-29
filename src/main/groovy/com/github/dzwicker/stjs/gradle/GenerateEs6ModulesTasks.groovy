@@ -5,10 +5,13 @@ import groovy.io.FileType
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 
+import java.util.regex.Pattern
+
 class GenerateEs6ModulesTasks extends DefaultTask {
     def File inputDir
     def File customJsDir
-    def File generatedJsFolder
+    def File destFolder
+    def File tempFolder
     def packageAliases = []
 
     def allClassesInfo
@@ -33,8 +36,10 @@ class GenerateEs6ModulesTasks extends DefaultTask {
 
         alreadyIncludedClasses = new HashSet<String>()
 
-        generatedJsFolder.delete();
-        generatedJsFolder.mkdirs();
+        destFolder.mkdirs();
+
+        tempFolder.delete();
+        tempFolder.mkdirs();
 
         includeCustomJs()
 
@@ -52,7 +57,7 @@ class GenerateEs6ModulesTasks extends DefaultTask {
         if (customJsDir != null) {
             customJsDir.eachFileRecurse(FileType.FILES) { file ->
                 if (file.path.endsWith('.js')) {
-                    def destFile = new File(generatedJsFolder, file.name)
+                    def destFile = new File(tempFolder, file.name)
                     Files.copy(file, destFile);
                 }
             }
@@ -87,7 +92,7 @@ class GenerateEs6ModulesTasks extends DefaultTask {
 
         def classModuleDetails = findClassModuleDetails(classInfo.class);
 
-        def destFile = new File(generatedJsFolder, classModuleDetails.fileModulePath + '.js');
+        def destFile = new File(tempFolder, classModuleDetails.fileModulePath + '.js');
         destFile.getParentFile().mkdirs();
         destFile.delete();
 
@@ -108,26 +113,37 @@ class GenerateEs6ModulesTasks extends DefaultTask {
                         dependencyClassModuleDetails.classNameWithJsNamespace,
                         dependencyClassModuleDetails.simpleClassName);
 
-                destFile.append("import ${dependencyClassModuleDetails.simpleClassName} from '${dependencyClassModuleDetails.fileModulePath}';\n")
+                destFile.append("import __${dependencyClassModuleDetails.simpleClassName} from '${dependencyClassModuleDetails.fileModulePath}';\n")
             }
         }
         destFile.append("\n")
 
         String fileContent = new File(inputDir, "classes/main/" + classInfo.js).text
-        moduleAlias.each {
-            fileContent = fileContent.replaceAll((CharSequence)it.key, it.value);
-        }
 
-        // remove namespace declarations such:
+        // remove stjs namespace declarations like:
         //    stjs.ns("stjs.Java");
         fileContent = fileContent.replaceAll(/stjs\.ns\(.*\);\n/, '')
+
+        // replace class variable declaration
+        //   From:
+        //     stjs.Java.Date = new function(...)
+        //   To:
+        //     __Date = new function(...)
+        fileContent = fileContent.replaceFirst(Pattern.quote(classModuleDetails.classNameWithJsNamespace + " = "), "var __" + classModuleDetails.simpleClassName + " = ");
+
+        moduleAlias.each {
+            // This will replace content inside quotes...
+            fileContent = fileContent.replaceAll((CharSequence)it.key, "__" + it.value);
+
+            // ... restore string within quotes
+            fileContent = fileContent.replaceAll((CharSequence)"\"__" + it.value + "\"", "\"" + it.key + "\"");
+        }
 
         destFile.append(fileContent);
 
         destFile.append("\n\n")
 
-        def simpleClassName = classInfo.class.tokenize('.').last();
-        destFile.append("export default ${simpleClassName};")
+        destFile.append("export default __${classModuleDetails.simpleClassName};")
     }
 
     Map findClassModuleDetails(String className) {
