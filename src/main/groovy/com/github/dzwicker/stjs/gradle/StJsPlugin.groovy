@@ -7,6 +7,7 @@ import org.gradle.api.logging.Logger
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.plugins.JavaPluginConvention
 import org.gradle.api.plugins.WarPlugin
+import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.SourceSet
 import org.stjs.generator.GeneratorConfigurationConfigParser
 
@@ -19,7 +20,8 @@ public class StJsPlugin implements Plugin<Project> {
 
     private GenerateStJsTask generateStJsTask;
     private Task inheritedPackedStjsCompileExtractionTask;
-    private Task inheritedPackedStjsCompileCopyTask;
+    private Task babelRuntimeTask;
+    private Task npmBuildTask;
     private PackStjsTask packStjsTask;
     private GenerateEs6ModulesTasks generateEs6ModulesTask;
 
@@ -59,6 +61,8 @@ public class StJsPlugin implements Plugin<Project> {
                 }
                 zipFile.close()
             }
+
+            generateStJsTask.setInheritedPackedConfigFilePath(getIneritedPackedConfigFile())
         }
 
         boolean isForJavaPlugin = project.getPlugins().hasPlugin(JavaPlugin.class);
@@ -83,21 +87,14 @@ public class StJsPlugin implements Plugin<Project> {
 
         File generatedSourcesDirectory = main.getOutput().getClassesDir();
         File generatedResourcesDirectory = main.getOutput().resourcesDir;
-        project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(packStjsTask);
 
         packStjsTask.setInputDir(project.getBuildDir());
         packStjsTask.setGeneratedJsFolder(generatedSourcesDirectory);
 
+        def es6TempFolder = new File(project.getBuildDir(), 'tmp/stjs-es6modules');
         generateEs6ModulesTask.setInputDir(project.getBuildDir());
-        generateEs6ModulesTask.setTempFolder(new File(project.rootDir, 'build/tmp/stjs-es6modules'));
+        generateEs6ModulesTask.setTempFolder(es6TempFolder);
         generateEs6ModulesTask.setDestFolder(generatedResourcesDirectory);
-
-        inheritedPackedStjsCompileCopyTask = project.task('inheritedPackedStjsCompileCopy',
-                group: TASK_GROUP, description: 'Copy the packed.js files found in the inherited packed dependency.') {
-            inputs.dir inheritedPackedStjsCompileExtractionTask.outputs.files
-            outputs.dir generatedSourcesDirectory
-            outputs.upToDateWhen { false }
-        } << this.&copyIneritedPackedFiles
 
         generateStJsTask = project.task('stjs', type: GenerateStJsTask, group: TASK_GROUP) << {
             generateEs6ModulesTask.setNamespaces(generateStJsTask.configuration.getNamespaces());
@@ -109,33 +106,27 @@ public class StJsPlugin implements Plugin<Project> {
         generateStJsTask.setCompileSourceRoots(allJava);
         generateStJsTask.setOutput(main.getOutput());
 
-        inheritedPackedStjsCompileCopyTask.dependsOn(inheritedPackedStjsCompileExtractionTask);
-        generateStJsTask.dependsOn(inheritedPackedStjsCompileCopyTask);
+        generateStJsTask.dependsOn(inheritedPackedStjsCompileExtractionTask);
         packStjsTask.dependsOn(generateStJsTask);
         generateEs6ModulesTask.dependsOn(generateStJsTask);
-    }
 
-    void copyIneritedPackedFiles(Task task) {
-        def dest = task.outputs.files.iterator().next()
-        dest.mkdir();
-        task.logger.info("Copying inherited packed files to: " + dest.absolutePath)
-
-        if (!task.inputs.files.empty) {
-            def filteredFiles = task.inputs.files.asFileTree.filter { it.name.endsWith('-packed.js') }
-
-            filteredFiles.iterator().each { from ->
-                task.logger.info("Copying inherited packed files from: " + from.absolutePath)
-
-                if (!from.isFile()) {
-                    throw new IllegalStateException("Expected packed file is not a valid file.")
-                }
-
-                new File(dest, from.name).bytes = from.bytes
-            }
+        babelRuntimeTask = project.task('babelRuntime', type: Exec, group: TASK_GROUP,
+                description: 'Prepare babel runtime for transpilation to ES6 modules.') {
+            workingDir es6TempFolder
+            commandLine 'npm'
+            args = ['run', 'generate-runtime']
         }
+        babelRuntimeTask.dependsOn(generateEs6ModulesTask);
 
-        // Set the inherited config only when we are in execution mode, not apply mode.
-        generateStJsTask.setInheritedPackedConfigFilePath(getIneritedPackedConfigFile())
+        npmBuildTask = project.task('npmBuild', type: Exec, group: TASK_GROUP,
+                description: 'Run npm build that will create a single file to the resources/main folder. This is an ES6 module enabled file that contains all the classes from your transpilation process.') {
+            workingDir es6TempFolder
+            commandLine 'npm'
+            args = ['run', 'build']
+        }
+        npmBuildTask.dependsOn(babelRuntimeTask);
+
+        project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(npmBuildTask);
     }
 
     String getIneritedPackedConfigFile() {
