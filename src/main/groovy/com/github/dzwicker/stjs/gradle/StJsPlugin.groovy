@@ -149,7 +149,7 @@ public class StJsPlugin implements Plugin<Project> {
         }
         bowerInstallTask.dependsOn(npmInstallBowerTask)
 
-        project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(npmBuildTask);
+        project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(generateStJsTask);
     }
 
     String getIneritedPackedConfigFile() {
