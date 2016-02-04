@@ -126,6 +126,29 @@ public class StJsPlugin implements Plugin<Project> {
         }
         npmBuildTask.dependsOn(babelRuntimeTask);
 
+        def npmInstallTask = project.task('npmInstall', type: Exec, group: TASK_GROUP,
+                description: 'Run "npm install" to setup the project based on the package.json.') {
+            commandLine 'npm', 'install'
+        }
+
+        def npmUpdateTask = project.task('npmUpdate', type: Exec, group: TASK_GROUP,
+                description: 'Run "npm update" to update the project based on the package.json.') {
+            commandLine 'npm', 'update'
+        }
+        npmUpdateTask.dependsOn(npmInstallTask)
+
+        def npmInstallBowerTask = project.task('npmInstallBower', type: Exec, group: TASK_GROUP,
+                description: 'Run "npm install -g bower" to install bower globally if not present.') {
+            commandLine 'npm', 'install', '-g', 'bower'
+        }
+        npmInstallBowerTask.dependsOn(npmUpdateTask)
+
+        def bowerInstallTask = project.task('bowerInstall', type: Exec, group: TASK_GROUP,
+                description: 'Run "bower install" to setup the project based on the bower.json.') {
+            commandLine 'bower', 'install'
+        }
+        bowerInstallTask.dependsOn(npmInstallBowerTask)
+
         project.getTasks().getByPath(JavaPlugin.JAR_TASK_NAME).dependsOn(npmBuildTask);
     }
 
