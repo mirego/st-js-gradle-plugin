@@ -17,7 +17,7 @@ ext {
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
     slf4j_version = '1.7.2'
-    stjs_version = '3.3.1.64-mirego'
+    stjs_version = '3.3.1.65-mirego'
 }
 
 group = 'com.github.dzwicker.stjs.gradle'
